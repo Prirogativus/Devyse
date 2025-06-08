@@ -18,6 +18,7 @@ def get_pagination_numbers(html: str):
         try:
             num = int(page.text.strip())
             page_numbers.append(num)
+            print("Added page: ", num)
         except ValueError:
             continue
     print("Pagination numbers found.")
@@ -30,20 +31,22 @@ def get_listings(html: str):
     devices = []
 
     print("Starting to scrape listings...")
-    listings = soup.find_all('a', class_ = "css-b6tdh7")
+    listings = soup.find_all('a', class_ = "css-1tqlkj0")
 
     for listing in listings:
         print("Working on listing...")
-        #link = 'https://www.olx.pl' + listing.find('a', class_ = 'css-1tqlkj0').get('href')
+        link = 'https://www.olx.pl' + listing.get('href')
         #description_page = requests.get(link).text
         #soup = BeautifulSoup(description_page, 'lxml')
         #description = soup.find('div', class_ = 'css-19duwlz').text
-
+        for child in listing.contents:
+            print(child) 
+            print('\n')
         laptop = {
             'title': listing.find('h4', class_ = 'css-1g61gc2').text,
-            'price': listing.find('p', class_ = 'css-uj7mm0').text,
-            'status': listing.find('span', class_ = 'css-iudov9').text,
-            'location': listing.find('p', class_ = 'css-vbz67q').text,
+            'price': listing.parent.parent.find('p', class_ = 'css-uj7mm0').text.strip(),
+            'status': listing.parent.parent.find('span', class_ = 'css-iudov9').text,
+            'location': listing.parent.parent.find('p', class_ = 'css-vbz67q').text,
             'link': link,
             #'descrption': description
         }
