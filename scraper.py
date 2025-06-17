@@ -2,9 +2,12 @@ from bs4 import BeautifulSoup
 import requests
 
 
-first_html_page = "https://www.olx.pl/elektronika/komputery/laptopy/krakow/?search%5Bdist%5D=30&search%5Border%5D=created_at:desc"
-regular_html_page ="https://www.olx.pl/elektronika/komputery/laptopy/krakow/?page=2&search%5Border%5D=created_at%3Adesc"
+"""
+This script serving to extract laptop data from the websites.
+"""
 
+
+html_page ="https://www.olx.pl/elektronika/komputery/laptopy/krakow/?page=1&search%5Border%5D=created_at%3Adesc"
 
 
 def get_pagination_numbers(html: str):
@@ -57,7 +60,7 @@ def get_listings(html: str):
               f"Status: {laptop['status']}, \n"
               f"location: {laptop['location']}, \n"
               f"link: {laptop['link']}, \n"
-              f"description: {laptop['description'][:50]}...\n")  # Print first 50 characters of description
+              f"description: {laptop['description'][:300]}...\n")  # Print first 50 characters of description
         
     return devices
 
@@ -85,11 +88,12 @@ def get_html_page(url: str):
 
 def main():
     laptops = []
-    for number in range(max(get_pagination_numbers(first_html_page))):
+    for number in range(max(get_pagination_numbers(html_page))):
         page_number = number + 1
         print (f"Page: {page_number}\n")
-        laptops = laptops + get_listings(regular_html_page.replace('page=2', f'page={page_number}')) 
+        laptops = laptops + get_listings(html_page.replace('page=1', f'page={page_number}')) 
     print("Finished scraping laptops.")
+    return laptops
 
 
 if __name__ == "__main__":
