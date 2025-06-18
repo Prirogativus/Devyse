@@ -6,3 +6,10 @@ olx_status_class = "css-iudov9"
 olx_location_class = "css-vbz67q"
 olx_pagination_class = "css-b6tdh7"
 olx_description_class = "css-19duwlz"
+
+# Database configuration
+DB_SERVER = "localhost"
+DB_NAME = "postgres"
+DB_PORT = 5432
+DB_USERNAME = "postgres"
+DB_PASSWORD = ""
