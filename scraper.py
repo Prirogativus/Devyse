@@ -1,5 +1,6 @@
 from bs4 import BeautifulSoup
 import requests
+import re
 
 
 """
@@ -37,6 +38,8 @@ def get_listings(html: str):
 
     print("Starting to scrape listings...")
     listings = soup.find_all('div', class_ = "css-l9drzq")
+    outstanding_listings = soup.find_all('div', class_ = "css-l9drzq")
+    listings += outstanding_listings
 
     for listing in listings:
 
@@ -45,6 +48,7 @@ def get_listings(html: str):
         link = 'https://www.olx.pl' + listing.find('a', class_ =  'css-1tqlkj0').get('href')
 
         laptop = {
+            'marketplace_ID': get_ID_from_link(link),
             'title': listing.find('h4', class_ = 'css-1g61gc2').text,
             'price': listing.find('p', class_ = 'css-uj7mm0').text.strip(),
             'status': listing.find('span', class_ = 'css-iudov9').text,
@@ -55,14 +59,22 @@ def get_listings(html: str):
 
         devices.append(laptop)
         
-        print(f"Laptop {laptop['title']} data: \n" 
+        print(f"marketplace_ID: {laptop['marketplace_ID']}, \n"
+              f"Laptop {laptop['title']} data: \n" 
               f"Price: {laptop['price']}, \n"
               f"Status: {laptop['status']}, \n"
               f"location: {laptop['location']}, \n"
               f"link: {laptop['link']}, \n"
-              f"description: {laptop['description'][:300]}...\n")  # Print first 50 characters of description
+              f"description: {laptop['description'][:300]}...\n\n\n")  # Print first 50 characters of description
         
     return devices
+
+def get_ID_from_link(url: str):
+
+    match = re.search(r'ID([a-zA-Z0-9]+)', url)
+    if match:
+        id = match.group(1)
+        return id
 
 def get_description(url: str):
 
@@ -98,5 +110,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-# class="css-1g5933j" - listings class

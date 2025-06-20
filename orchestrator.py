@@ -6,7 +6,7 @@ import config as cfg
 
 def main():
     dm.laptops = scr.main()
-    db.add_data(dm.laptops)
+    dm.sync_with_database(dm.laptops)
 
 if __name__ == "__main__":
     main()
