@@ -1,6 +1,8 @@
 from bs4 import BeautifulSoup
 import requests
 import re
+import aiohttp
+import asyncio
 
 
 """
@@ -8,16 +10,33 @@ This script serving to extract laptop data from the websites.
 """
 
 
-html_page ="https://www.olx.pl/elektronika/komputery/laptopy/krakow/?page=1&search%5Border%5D=created_at%3Adesc"
+html_page = "https://www.olx.pl/elektronika/komputery/laptopy/krakow/?page=1&search%5Border%5D=created_at%3Adesc"
+headers = {
+    "User-Agent": "Mozilla/5.0"  # This is a common user-agent string to mimic a browser request
+} 
 
+async def get_html_page(session, url: str):
 
-def get_pagination_numbers(html: str):
+    # Function to get HTML page from a given URL
+
+    print("Getting HTML page...")
+
+    async with session.get(url, headers=headers) as response:
+        text = await response.text()
+        soup = BeautifulSoup(text, 'lxml')
+
+    print("HTML page retrieved.")
+
+    return soup
+
+async def get_pagination_numbers(session, url: str):
     
-    soup = get_html_page(html)
+    soup =  await get_html_page(session, url)
     pagination = soup.find_all('a', class_ = "css-b6tdh7")
-
     print("Getting pagination numbers...")
+
     page_numbers = []
+
     for page in pagination:
         try:
             num = int(page.text.strip())
@@ -25,15 +44,32 @@ def get_pagination_numbers(html: str):
             print("Added page: ", num)
         except ValueError:
             continue
+
     print("Pagination numbers found.")
+
     return page_numbers
 
-def get_listings(html: str):
+def get_ID_from_link(url: str):
+
+    match = re.search(r"-ID([a-zA-Z0-9]+)\.html$", url)
+    if match:
+        id = match.group(1)
+        return id
+
+async def get_description(session, url: str):
+
+    # Gets the desctiption of the Laptop from the given page
+
+    soup = await get_html_page(session, url)
+    description = soup.find('div', class_ = 'css-19duwlz').text
+    return description    
+
+async def get_listings(session, url: str):
 
     #Finds all listings on the given page 
     #Returns a list of dictionaries with laptop information and description
 
-    soup = get_html_page(html)
+    soup = await get_html_page(session, url)
     devices = []
 
     print("Starting to scrape listings...")
@@ -54,7 +90,7 @@ def get_listings(html: str):
             'status': listing.find('span', class_ = 'css-iudov9').text,
             'location': listing.find('p', class_ = 'css-vbz67q').text,
             'link': link,
-            'description': get_description(link)
+            'description': await get_description(session, link)
         }
 
         devices.append(laptop)
@@ -69,44 +105,25 @@ def get_listings(html: str):
         
     return devices
 
-def get_ID_from_link(url: str):
+async def main():
+ async with aiohttp.ClientSession() as session:
+        page_numbers = await get_pagination_numbers(session, html_page)
+        max_page = max(page_numbers)
 
-    match = re.search(r"-ID([a-zA-Z0-9]+)\.html$", url)
-    if match:
-        id = match.group(1)
-        return id
+        tasks = []
+        for page in range(1, max_page + 1):
+            url = html_page.replace("page=1", f"page={page}")
+            tasks.append(get_listings(session, url))
 
-def get_description(url: str):
+        print(f"Scraping {max_page} pages asynchronously...")
+        results = await asyncio.gather(*tasks)
 
-    # Gets the desctiption of the Laptop from the given page
+        # Flatten the list of lists
+        laptops = [item for sublist in results for item in sublist]
 
-    soup = get_html_page(url)
-    description = soup.find('div', class_ = 'css-19duwlz').text
-    return description
-
-def get_html_page(url: str):
-
-    # Function to get HTML page from a given URL
-
-    print("Getting HTML page...")
-
-    html_page = requests.get(url).text
-    soup = BeautifulSoup(html_page, 'lxml')
-
-    print("HTML page retrieved.")
-
-    return soup
-    
-
-def main():
-    laptops = []
-    for number in range(max(get_pagination_numbers(html_page))):
-        page_number = number + 1
-        print (f"Page: {page_number}\n")
-        laptops = laptops + get_listings(html_page.replace('page=1', f'page={page_number}')) 
-    print("Finished scraping laptops.")
-    return laptops
+        print(f"Scraped {len(laptops)} laptops.")
+        return laptops
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
