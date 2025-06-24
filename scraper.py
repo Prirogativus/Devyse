@@ -59,7 +59,7 @@ def get_listings(html: str):
 
         devices.append(laptop)
         
-        print(f"marketplace_ID: {laptop['marketplace_ID']}, \n"
+        print(f"marketplace_ID: {laptop['marketplace_ID']}, \n" 
               f"Laptop {laptop['title']} data: \n" 
               f"Price: {laptop['price']}, \n"
               f"Status: {laptop['status']}, \n"
@@ -71,7 +71,7 @@ def get_listings(html: str):
 
 def get_ID_from_link(url: str):
 
-    match = re.search(r'ID([a-zA-Z0-9]+)', url)
+    match = re.search(r"-ID([a-zA-Z0-9]+)\.html$", url)
     if match:
         id = match.group(1)
         return id
