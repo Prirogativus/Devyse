@@ -2,7 +2,7 @@ from bs4 import BeautifulSoup
 import re
 import aiohttp
 import asyncio
-
+import logging
 import config
 
 from models import Laptop, create_laptop
@@ -10,6 +10,7 @@ from models import Laptop, create_laptop
 This script serves to extract laptop data from the websites.
 """
 
+logger = logging.getLogger(__name__)
 
 class DataScraper:
 
@@ -20,41 +21,44 @@ class DataScraper:
 
     @staticmethod
     async def get_html_page(session, url: str):
-        print("Getting HTML page...")
+        logger.info(f"Getting HTML page from: {url}...")
         async with session.get(url, headers=DataScraper.headers) as response:
             text = await response.text()
             soup = BeautifulSoup(text, 'lxml')
-        print("HTML page retrieved.")
+        logger.info("HTML page retrieved.")
         return soup
 
     @staticmethod
     async def get_pagination_numbers(session, url: str):
         soup = await DataScraper.get_html_page(session, url)
         pagination = soup.select(config.olx_pagination_selector)
-        print("Getting pagination numbers...")
+        logger.info(f"Getting pagination numbers from {url}...")
 
         page_numbers = []
         for page in pagination:
             try:
                 num = int(page.text.strip())
                 page_numbers.append(num)
-                print("Added page: ", num)
+                logger.info("Retrieved pagination number: ", num)
             except ValueError:
                 continue
 
-        print("Pagination numbers found.")
+        logger.info(f"Pagination numbers found: {page_numbers}")
         return page_numbers
 
     @staticmethod
     def get_id_from_link(url: str):
+        logger.info(f"Getting ID from link {url}...")
         match = re.search(r"-ID([a-zA-Z0-9]+)\.html$", url)
         if match:
+            logger.info(f"Successful ID match has been found in url: {match}")
             return match.group(1)
 
     @staticmethod
     async def get_description(session, url: str):
         soup = await DataScraper.get_html_page(session, url)
         description = soup.select_one(config.olx_description_selector).text
+        logger.info(f"Description has been retrieved successfully: {description[:100]} from {url}.")
         return description
 
     @staticmethod
@@ -62,12 +66,12 @@ class DataScraper:
         soup = await DataScraper.get_html_page(session, url)
         devices = []
 
-        print("Starting to scrape listings...")
+        logger.info(f"Starting to scrape listings from: {url}")
         listings = soup.select(config.olx_listing_selector)
 
         for listing in listings:
 
-            print("Working on listing...")
+            logger.info(f"Working on listing: {listing}...")
 
             link = 'https://www.olx.pl' + listing.select_one(config.olx_link_selector).get('href')
 
@@ -86,7 +90,8 @@ class DataScraper:
 
             devices.append(validated_laptop)
 
-            print(f"marketplace_id: {laptop_data['marketplace_id']}, \n" 
+            logger.info("WORK ON LISTING DONE. RESULTS:\n\n"
+                  f"marketplace_id: {laptop_data['marketplace_id']}, \n" 
                   f"Laptop {laptop_data['title']} data: \n" 
                   f"Price: {laptop_data['price']}, \n"
                   f"Status: {laptop_data['status']}, \n"
@@ -102,16 +107,18 @@ class DataScraper:
             max_page = max(page_numbers)
 
             tasks = []
+
             for page in range(1, max_page + 1):
                 url = DataScraper.html_page.replace("page=1", f"page={page}")
                 tasks.append(DataScraper.get_listings(session, url))
+                logger.info(f"Appending get_listings task nr {page} asynchronously...")
 
-            print(f"Scraping {max_page} pages asynchronously...")
+            logger.info(f"Scraping {max_page} pages asynchronously...")
             results = await asyncio.gather(*tasks)
 
             laptops = [item for sublist in results for item in sublist]
 
-            print(f"Scraped {len(laptops)} laptops.")
+            logger.info(f"Scraped {len(laptops)} laptops.")
             return laptops
 
 

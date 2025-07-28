@@ -2,6 +2,9 @@ from sqlmodel import SQLModel, Field
 from typing import Optional
 from datetime import datetime
 from pydantic import HttpUrl, validator
+import logging
+
+logger = logging.getLogger(__name__)
 
 class Laptop(SQLModel, table=True):
 
@@ -28,8 +31,8 @@ class Laptop(SQLModel, table=True):
             raise ValueError(f"Invalid price format: {value}")
 
     @validator("title")
-    def normalize_title(cls, v):
-        return v.strip()
+    def normalize_title(cls, value):
+        return value.strip()
 
 def create_laptop(data: dict) -> Optional[Laptop]:
     try:

@@ -3,11 +3,14 @@ from sqlalchemy import Column, Integer, String, DateTime, Float, Text
 import sqlalchemy.ext.declarative
 import sqlalchemy.orm
 import psycopg2
+import logging
 from models import Laptop 
 from config import DB_USERNAME, DB_PASSWORD, DB_SERVER, DB_PORT, DB_NAME
 
+logger = logging.getLogger(__name__)
+
 DATABASE_URL = f"postgresql://{DB_USERNAME}:{DB_PASSWORD}@{DB_SERVER}:{DB_PORT}/{DB_NAME}"
-print(f"Connecting to database at {DB_SERVER}:{DB_PORT}...")
+logger.info(f"Connecting to database at {DB_SERVER}:{DB_PORT}...")
 engine = sqlalchemy.create_engine(DATABASE_URL)
 
 Base = sqlalchemy.ext.declarative.declarative_base()
@@ -32,7 +35,7 @@ session = Session()
 
 
 def add_data(laptops: List[Laptop]):
-    print(f"Adding {len(laptops)} laptops to the database...")
+    logger.info(f"Adding {len(laptops)} laptops to the database...")
     for laptop in laptops:
         new_listing = LaptopListing(
             marketplace_id=laptop.marketplace_id,
@@ -47,11 +50,11 @@ def add_data(laptops: List[Laptop]):
         )
         session.add(new_listing)
     session.commit()
-    print(f"Inserted {len(laptops)} laptops into the database.")
+    logger.info(f"Inserted {len(laptops)} laptops into the database.")
 
 
 def get_data() -> List[Laptop]:
-    print("Retrieving laptops from database...")
+    logger.info("Retrieving laptops from database...")
     listings = session.query(LaptopListing).all()
     laptops = []
     for listing in listings:
@@ -67,16 +70,16 @@ def get_data() -> List[Laptop]:
             disappearance_time=listing.disappearance_time
         )
         laptops.append(laptop)
-    print(f"Retrieved {len(laptops)} laptops.")
+    logger.info(f"Retrieved {len(laptops)} laptops.")
     return laptops
 
 
 def delete_data(marketplace_id: str):
-    print(f"Deleting listing with marketplace_id={marketplace_id}...")
+    logger.info(f"Deleting listing with marketplace_id={marketplace_id}...")
     listing = session.query(LaptopListing).filter_by(marketplace_id=marketplace_id).first()
     if listing:
         session.delete(listing)
         session.commit()
-        print(f"Deleted listing with marketplace_id={marketplace_id}.")
+        logger.info(f"Deleted listing with marketplace_id={marketplace_id}.")
     else:
-        print(f"No listing found with marketplace_id={marketplace_id}.")
+        logger.info(f"No listing found with marketplace_id={marketplace_id}.")
