@@ -1,129 +1,119 @@
 from bs4 import BeautifulSoup
-import requests
 import re
 import aiohttp
 import asyncio
 
+import config
 
+from models import Laptop, create_laptop
 """
-This script serving to extract laptop data from the websites.
+This script serves to extract laptop data from the websites.
 """
 
 
-html_page = "https://www.olx.pl/elektronika/komputery/laptopy/krakow/?page=1&search%5Border%5D=created_at%3Adesc"
-headers = {
-    "User-Agent": "Mozilla/5.0"  # This is a common user-agent string to mimic a browser request
-} 
+class DataScraper:
 
-async def get_html_page(session, url: str):
+    html_page = config.olx_html_page
+    headers = {
+        "User-Agent": "Mozilla/5.0"
+    }
 
-    # Function to get HTML page from a given URL
+    @staticmethod
+    async def get_html_page(session, url: str):
+        print("Getting HTML page...")
+        async with session.get(url, headers=DataScraper.headers) as response:
+            text = await response.text()
+            soup = BeautifulSoup(text, 'lxml')
+        print("HTML page retrieved.")
+        return soup
 
-    print("Getting HTML page...")
+    @staticmethod
+    async def get_pagination_numbers(session, url: str):
+        soup = await DataScraper.get_html_page(session, url)
+        pagination = soup.select(config.olx_pagination_selector)
+        print("Getting pagination numbers...")
 
-    async with session.get(url, headers=headers) as response:
-        text = await response.text()
-        soup = BeautifulSoup(text, 'lxml')
+        page_numbers = []
+        for page in pagination:
+            try:
+                num = int(page.text.strip())
+                page_numbers.append(num)
+                print("Added page: ", num)
+            except ValueError:
+                continue
 
-    print("HTML page retrieved.")
+        print("Pagination numbers found.")
+        return page_numbers
 
-    return soup
+    @staticmethod
+    def get_id_from_link(url: str):
+        match = re.search(r"-ID([a-zA-Z0-9]+)\.html$", url)
+        if match:
+            return match.group(1)
 
-async def get_pagination_numbers(session, url: str):
-    
-    soup =  await get_html_page(session, url)
-    pagination = soup.find_all('a', class_ = "css-b6tdh7")
-    print("Getting pagination numbers...")
+    @staticmethod
+    async def get_description(session, url: str):
+        soup = await DataScraper.get_html_page(session, url)
+        description = soup.select_one(config.olx_description_selector).text
+        return description
 
-    page_numbers = []
+    @staticmethod
+    async def get_listings(session, url: str):
+        soup = await DataScraper.get_html_page(session, url)
+        devices = []
 
-    for page in pagination:
-        try:
-            num = int(page.text.strip())
-            page_numbers.append(num)
-            print("Added page: ", num)
-        except ValueError:
-            continue
+        print("Starting to scrape listings...")
+        listings = soup.select(config.olx_listing_selector)
 
-    print("Pagination numbers found.")
+        for listing in listings:
 
-    return page_numbers
+            print("Working on listing...")
 
-def get_ID_from_link(url: str):
+            link = 'https://www.olx.pl' + listing.select_one(config.olx_link_selector).get('href')
 
-    match = re.search(r"-ID([a-zA-Z0-9]+)\.html$", url)
-    if match:
-        id = match.group(1)
-        return id
+            laptop_data = {
+                'marketplace_id': DataScraper.get_id_from_link(link),
+                'title': listing.select_one(config.olx_title_selector).text,
+                'price': listing.select_one(config.olx_price_selector).text.strip(),
+                'status': listing.select_one(config.olx_status_selector).text,
+                'location': listing.select_one(config.olx_location_selector).text,
+                'link': link,
+                'description': await DataScraper.get_description(session, link),
+                'appearance_time': None,
+                'disappearance_time': None,
+            }
+            validated_laptop = create_laptop(laptop_data)
 
-async def get_description(session, url: str):
+            devices.append(validated_laptop)
 
-    # Gets the desctiption of the Laptop from the given page
+            print(f"marketplace_id: {laptop_data['marketplace_id']}, \n" 
+                  f"Laptop {laptop_data['title']} data: \n" 
+                  f"Price: {laptop_data['price']}, \n"
+                  f"Status: {laptop_data['status']}, \n"
+                  f"location: {laptop_data['location']}, \n"
+                  f"link: {laptop_data['link']}, \n"
+                  f"description: {laptop_data['description'][:300]}...\n\n\n")
 
-    soup = await get_html_page(session, url)
-    description = soup.find('div', class_ = 'css-19duwlz').text
-    return description    
+        return devices
 
-async def get_listings(session, url: str):
+    async def main():
+        async with aiohttp.ClientSession() as session:
+            page_numbers = await DataScraper.get_pagination_numbers(session, DataScraper.html_page)
+            max_page = max(page_numbers)
 
-    #Finds all listings on the given page 
-    #Returns a list of dictionaries with laptop information and description
+            tasks = []
+            for page in range(1, max_page + 1):
+                url = DataScraper.html_page.replace("page=1", f"page={page}")
+                tasks.append(DataScraper.get_listings(session, url))
 
-    soup = await get_html_page(session, url)
-    devices = []
+            print(f"Scraping {max_page} pages asynchronously...")
+            results = await asyncio.gather(*tasks)
 
-    print("Starting to scrape listings...")
-    listings = soup.find_all('div', class_ = "css-l9drzq")
-    outstanding_listings = soup.find_all('div', class_ = "css-l9drzq")
-    listings += outstanding_listings
+            laptops = [item for sublist in results for item in sublist]
 
-    for listing in listings:
-
-        print("Working on listing...")
-
-        link = 'https://www.olx.pl' + listing.find('a', class_ =  'css-1tqlkj0').get('href')
-
-        laptop = {
-            'marketplace_ID': get_ID_from_link(link),
-            'title': listing.find('h4', class_ = 'css-1g61gc2').text,
-            'price': listing.find('p', class_ = 'css-uj7mm0').text.strip(),
-            'status': listing.find('span', class_ = 'css-iudov9').text,
-            'location': listing.find('p', class_ = 'css-vbz67q').text,
-            'link': link,
-            'description': await get_description(session, link)
-        }
-
-        devices.append(laptop)
-        
-        print(f"marketplace_ID: {laptop['marketplace_ID']}, \n" 
-              f"Laptop {laptop['title']} data: \n" 
-              f"Price: {laptop['price']}, \n"
-              f"Status: {laptop['status']}, \n"
-              f"location: {laptop['location']}, \n"
-              f"link: {laptop['link']}, \n"
-              f"description: {laptop['description'][:300]}...\n\n\n")  # Print first 50 characters of description
-        
-    return devices
-
-async def main():
- async with aiohttp.ClientSession() as session:
-        page_numbers = await get_pagination_numbers(session, html_page)
-        max_page = max(page_numbers)
-
-        tasks = []
-        for page in range(1, max_page + 1):
-            url = html_page.replace("page=1", f"page={page}")
-            tasks.append(get_listings(session, url))
-
-        print(f"Scraping {max_page} pages asynchronously...")
-        results = await asyncio.gather(*tasks)
-
-        # Flatten the list of lists
-        laptops = [item for sublist in results for item in sublist]
-
-        print(f"Scraped {len(laptops)} laptops.")
-        return laptops
+            print(f"Scraped {len(laptops)} laptops.")
+            return laptops
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(DataScraper.main())
