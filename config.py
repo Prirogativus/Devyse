@@ -6,7 +6,6 @@ olx_location_selector = "[data-testid='location-date']"
 olx_pagination_selector = "ul[data-testid='pagination-list'] li[data-testid='pagination-list-item'] a"
 olx_price_selector = "[data-testid='ad-price']"
 olx_status_selector = '[title="Nowe"], [title="Używane"], [title="Uszkodzone"]'
-
 olx_title_selector = "a[href^='/d/'] h3, a[href^='/d/'] h4, a[href^='/d/'] h5, a[href^='/d/'] h6"
 
 

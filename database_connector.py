@@ -2,10 +2,10 @@ from typing import Optional, List
 from sqlalchemy import Column, Integer, String, DateTime, Float, Text
 import sqlalchemy.ext.declarative
 import sqlalchemy.orm
-import psycopg2
 import logging
 from models import Laptop 
 from config import DB_USERNAME, DB_PASSWORD, DB_SERVER, DB_PORT, DB_NAME
+
 
 logger = logging.getLogger(__name__)
 
@@ -83,3 +83,19 @@ def delete_data(marketplace_id: str):
         logger.info(f"Deleted listing with marketplace_id={marketplace_id}.")
     else:
         logger.info(f"No listing found with marketplace_id={marketplace_id}.")
+
+def modify_data(selector: str, modification_value: str): 
+    logger.info(f"Modifing data in the database.")
+
+    listing = session.query(LaptopListing).filter_by(title = selector).first()
+
+    if listing:
+        if listing.disappearance_time is None:
+            listing.disappearance_time = modification_value
+            session.commit()
+            logger.info(f"Added disappearance time: {modification_value}, to the {listing.title}")
+        else:
+            logger.info(f"Disappearance time is already existing.")
+    else: 
+        logger.info("Can't find needed listing")
+

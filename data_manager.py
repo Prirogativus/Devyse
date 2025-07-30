@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import List
 from models import Laptop
 import logging
-from database_connector import get_data, add_data
+from database_connector import get_data, add_data, modify_data
 
 logger = logging.getLogger(__name__)
 
@@ -44,4 +44,5 @@ def timestamp_laptop(appearance: bool, laptop: Laptop):
         logger.info(f"Timestamping appearance: {laptop.title}, ID: {laptop.marketplace_id}")
     else:
         laptop.disappearance_time = now
+        modify_data(laptop.title, laptop.disappearance_time)
         logger.info(f"Timestamping disappearance: {laptop.title}, ID: {laptop.marketplace_id}")
