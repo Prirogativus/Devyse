@@ -4,9 +4,15 @@ from datetime import datetime
 from pydantic import HttpUrl, validator
 import logging
 from typing import Optional, Literal
+from enum import Enum
 import re
 
 logger = logging.getLogger(__name__)
+
+class Status(str, Enum):
+    NOWE = "Nowe"
+    UZYWANE = "Używane"
+    USZKODZONE = "Uszkodzone"
 
 class Laptop(SQLModel, table=True):
 
@@ -14,9 +20,9 @@ class Laptop(SQLModel, table=True):
     marketplace_id: Optional[str] = Field(default=None, index=True)
     title: str = Field(...)
     price: float = Field(...)
-    status: Literal["Nowe", "Używane", "Uszkodzone"] = Field(..., description="This field showing a listing status scraped from OLX")
+    status: Status = Field(...)
     location: str = Field(...)
-    link: HttpUrl
+    link: str
     description: Optional[str] = Field(default=None)
     appearance_time: Optional[datetime] = Field(default=None)
     disappearance_time: Optional[datetime] = Field(default=None)

@@ -3,9 +3,9 @@ import re
 import aiohttp
 import asyncio
 import logging
-import config
+import configs.scraper_config as scraper_config
 
-from models import Laptop, create_laptop
+from data.models import Laptop, create_laptop
 """
 This script serves to extract laptop data from the websites.
 """
@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 class DataScraper:
 
-    html_page = config.olx_html_page
+    html_page = scraper_config.olx_html_page
     headers = {
         "User-Agent": "Mozilla/5.0"
     }
@@ -31,7 +31,7 @@ class DataScraper:
     @staticmethod
     async def get_pagination_numbers(session, url: str):
         soup = await DataScraper.get_html_page(session, url)
-        pagination = soup.select(config.olx_pagination_selector)
+        pagination = soup.select(scraper_config.olx_pagination_selector)
         logger.info(f"Getting pagination numbers from {url}...")
 
         page_numbers = []
@@ -57,7 +57,7 @@ class DataScraper:
     @staticmethod
     async def get_description(session, url: str):
         soup = await DataScraper.get_html_page(session, url)
-        description = soup.select_one(config.olx_description_selector).text
+        description = soup.select_one(scraper_config.olx_description_selector).text
         logger.info(f"Description has been retrieved successfully: {description[:100]} from {url}.")
         return description
 
@@ -67,20 +67,20 @@ class DataScraper:
         devices = []
 
         logger.info(f"Starting to scrape listings from: {url}")
-        listings = soup.select(config.olx_listing_selector)
+        listings = soup.select(scraper_config.olx_listing_selector)
 
         for listing in listings:
 
             logger.info(f"Working on listing: {listing}...")
 
-            link = 'https://www.olx.pl' + listing.select_one(config.olx_link_selector).get('href')
+            link = 'https://www.olx.pl' + listing.select_one(scraper_config.olx_link_selector).get('href')
 
             laptop_data = {
                 'marketplace_id': DataScraper.get_id_from_link(link),
-                'title': listing.select_one(config.olx_title_selector).text,
-                'price': listing.select_one(config.olx_price_selector).text.strip(),
-                'status': listing.select_one(config.olx_status_selector).text,
-                'location': listing.select_one(config.olx_location_selector).text,
+                'title': listing.select_one(scraper_config.olx_title_selector).text,
+                'price': listing.select_one(scraper_config.olx_price_selector).text.strip(),
+                'status': listing.select_one(scraper_config.olx_status_selector).text,
+                'location': listing.select_one(scraper_config.olx_location_selector).text,
                 'link': link,
                 'description': await DataScraper.get_description(session, link),
                 'appearance_time': None,

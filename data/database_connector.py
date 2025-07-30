@@ -3,9 +3,8 @@ from sqlalchemy import Column, Integer, String, DateTime, Float, Text
 import sqlalchemy.ext.declarative
 import sqlalchemy.orm
 import logging
-from models import Laptop 
-from config import DB_USERNAME, DB_PASSWORD, DB_SERVER, DB_PORT, DB_NAME
-
+from data.models import Laptop 
+from constants.constants_manager import DB_USERNAME, DB_PASSWORD, DB_SERVER, DB_PORT, DB_NAME
 
 logger = logging.getLogger(__name__)
 

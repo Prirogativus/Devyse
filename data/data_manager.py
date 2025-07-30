@@ -1,8 +1,8 @@
 from datetime import datetime
 from typing import List
-from models import Laptop
+from data.models import Laptop
 import logging
-from database_connector import get_data, add_data, modify_data
+from data.database_connector import get_data, add_data, modify_data
 
 logger = logging.getLogger(__name__)
 

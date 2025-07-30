@@ -1,10 +1,10 @@
-import scraper as scr
-import data_manager as dm
-import database_connector as db
-import config as cfg
+import scraper.scraper as scr
+import data.data_manager as dm
+import data.database_connector as db
+import configs.scraper_config as cfg
 import asyncio
 import logging
-from logger_config import setup_logger
+from configs.logger_config import setup_logger
 
 setup_logger()
 logger = logging.getLogger(__name__)
