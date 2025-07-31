@@ -1,7 +1,7 @@
 from sqlmodel import SQLModel, Field
 from typing import Optional
 from datetime import datetime
-from pydantic import HttpUrl, validator
+from pydantic import HttpUrl, field_validator
 import logging
 from typing import Optional, Literal
 from enum import Enum
@@ -29,8 +29,11 @@ class Laptop(SQLModel, table=True):
 
 #Validators
 
-    @validator("price", pre=True)
+    @field_validator("price", mode="before")
+    @classmethod
     def parse_price(cls, value):
+        if value is None:
+            raise ValueError("Price cannot be None")
         if isinstance(value, (float, int)):
             return float(value)
         value = value.replace("zł", "").replace(" ", "").replace(",", ".")
@@ -39,19 +42,22 @@ class Laptop(SQLModel, table=True):
         except ValueError:
             raise ValueError(f"Invalid price format: {value}")
 
-    @validator("title", "location", pre=True)
+    @field_validator("title", "location", mode="before")
+    @classmethod
     def strip_required_strings(cls, value):
         if not isinstance(value, str):
             raise ValueError("Must be a string")
         return value.strip()
 
-    @validator("description", pre=True)
+    @field_validator("description", mode="before")
+    @classmethod
     def normalize_description(cls, value):
         if value is None:
-            return ("NO DESCRIPTION")
+            return "NO DESCRIPTION"
         return value.strip()
     
-    @validator("appearance_time", "disappearance_time", pre=True)
+    @field_validator("appearance_time", "disappearance_time", mode="before")
+    @classmethod
     def parse_datetime(cls, value):
         if value is None or isinstance(value, datetime):
             return value
@@ -59,12 +65,8 @@ class Laptop(SQLModel, table=True):
             return datetime.fromisoformat(value)
         except Exception:
             raise ValueError(f"Invalid datetime format: {value}")
-
+        
 #Factory Function
 
 def create_laptop(data: dict) -> Laptop:
-    try:
-        laptop = Laptop(**data)
-        return laptop
-    except Exception as e:
-        logger.error(f"[ERROR] Validation failed for laptop: {data.get('title', 'No title')}\n{e}")
+    return Laptop.model_validate(data)

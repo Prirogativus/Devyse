@@ -9,6 +9,13 @@ logger = logging.getLogger(__name__)
 def sync_with_database(scraped_laptops: List[Laptop]):
     db_laptops: List[Laptop] = get_data() or []
 
+    if not db_laptops:
+        for laptop in scraped_laptops:
+            timestamp_laptop(True, laptop)
+            logger.info(f"Adding new laptop to the database: {laptop.title}, ID: {laptop.marketplace_id}")
+        add_data(scraped_laptops)
+        return
+
     scraped_ids = {laptop.marketplace_id for laptop in scraped_laptops}
     db_ids = {laptop.marketplace_id for laptop in db_laptops}
 
@@ -18,23 +25,20 @@ def sync_with_database(scraped_laptops: List[Laptop]):
     scraped_map = {laptop.marketplace_id: laptop for laptop in scraped_laptops}
     db_map = {laptop.marketplace_id: laptop for laptop in db_laptops}
 
+    new_laptops = []
     for id in new_ids:
         laptop = scraped_map[id]
         timestamp_laptop(True, laptop)
         logger.info(f"Adding new laptop to the database: {laptop.title}, ID: {laptop.marketplace_id}")
-        add_data([laptop])
+        new_laptops.append(laptop)
+
+    if new_laptops:
+        add_data(new_laptops)
 
     for id in removed_ids:
         laptop = db_map[id]
         timestamp_laptop(False, laptop)
         logger.info(f"Add disappearance time for: {laptop.title}, ID: {laptop.marketplace_id}")
-
-
-    if not db_laptops:
-        for laptop in scraped_laptops:
-            timestamp_laptop(True, laptop)
-            logger.info(f"Adding new laptop to the database: {laptop.title}, ID: {laptop.marketplace_id}")
-        add_data(scraped_laptops)
 
 
 def timestamp_laptop(appearance: bool, laptop: Laptop):

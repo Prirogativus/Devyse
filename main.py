@@ -1,4 +1,4 @@
-import scraper.scraper as scr
+import scraper.data_scraper as scr
 import data.data_manager as dm
 import data.database_connector as db
 import configs.scraper_config as cfg
@@ -7,6 +7,7 @@ import logging
 from configs.logger_config import setup_logger
 
 setup_logger()
+
 logger = logging.getLogger(__name__)
 
 def main():

@@ -1,5 +1,3 @@
-from dotenv import load_dotenv
-
 olx_html_page = "https://www.olx.pl/elektronika/komputery/laptopy/krakow/?page=1&search%5Border%5D=created_at%3Adesc"
 olx_description_selector = "div[data-cy='ad_description']"
 olx_link_selector = "a[href^='/d/']"
