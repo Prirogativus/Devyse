@@ -57,7 +57,8 @@ class DataScraper:
     @staticmethod
     async def get_description(session, url: str):
         soup = await DataScraper.get_html_page(session, url)
-        description = soup.select_one(scraper_config.olx_description_selector).text
+        description_element = soup.select_one(scraper_config.olx_description_selector)
+        description = description_element.get_text(separator="\n") if description_element else ""
         logger.info(f"Description has been retrieved successfully: {description[:100]} from {url}.")
         return description
 
@@ -71,7 +72,7 @@ class DataScraper:
 
         for listing in listings:
 
-            logger.info(f"Working on listing: {listing}...")
+            logger.info(f"Working on listing: {listing[:100]}...")
 
             link = 'https://www.olx.pl' + listing.select_one(scraper_config.olx_link_selector).get('href')
 
