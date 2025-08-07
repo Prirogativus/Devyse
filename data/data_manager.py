@@ -6,6 +6,8 @@ from data.database_connector import get_data, add_data, modify_data
 
 logger = logging.getLogger(__name__)
 
+laptops: List[Laptop] = []
+
 def sync_with_database(scraped_laptops: List[Laptop]):
     db_laptops = fetch_laptops_from_db()
     new, removed = detect_changes(scraped_laptops, db_laptops)
@@ -21,8 +23,8 @@ def  fetch_laptops_from_db() -> List[Laptop]:
     return db_laptops
 
 def detect_changes(scraped_laptops: List[Laptop], db_laptops: List[Laptop]):
-    new = scraped_laptops - db_laptops
-    removed = db_laptops - scraped_laptops
+    new = [laptop for laptop in scraped_laptops if laptop not in db_laptops]
+    removed = [laptop for laptop in db_laptops if laptop not in scraped_laptops]
     return new, removed
 
 def timestamp_appearance(laptop: Laptop):
