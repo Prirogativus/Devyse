@@ -1,5 +1,5 @@
 import pytest
-from data.models import Laptop, create_laptop, Status
+from data.models import Laptop, create_laptop, status_enum
 from pydantic import ValidationError
 from datetime import datetime
 
@@ -9,12 +9,17 @@ def test_valid_laptop_creation():
         "marketplace_id": "abc123",
         "title": " Acer Nitro 5 ",
         "price": "2 999,99 zł",
+        "model": "Acer Nitro 5",
+        "cpu": "Intel Core i5",
+        "gpu": "NVIDIA GTX 1650",
+        "ram": "8 GB",
+        "storage": "512 GB SSD",
         "status": "Używane",
         "location": " Kraków ",
+        "appearance_time": "2024-05-01T12:00:00",
+        "disappearance_time": None,
         "link": "http://example.com",
         "description": "  Gaming laptop ",
-        "appearance_time": "2024-05-01T12:00:00",
-        "disappearance_time": None
     }
 
     laptop = create_laptop(data)
@@ -22,7 +27,7 @@ def test_valid_laptop_creation():
     assert isinstance(laptop, Laptop)
     assert laptop.title == "Acer Nitro 5"
     assert laptop.price == 2999.99
-    assert laptop.status == Status.UZYWANE
+    assert laptop.status == status_enum.UZYWANE
     assert laptop.location == "Kraków"
     assert laptop.description == "Gaming laptop"
     assert laptop.appearance_time == datetime(2024, 5, 1, 12, 0, 0)

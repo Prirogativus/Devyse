@@ -40,7 +40,6 @@ def sync_with_database(scraped_laptops: List[Laptop]):
         timestamp_laptop(False, laptop)
         logger.info(f"Add disappearance time for: {laptop.title}, ID: {laptop.marketplace_id}")
 
-
 def timestamp_laptop(appearance: bool, laptop: Laptop):
     now = datetime.now()
     if appearance:

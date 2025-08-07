@@ -1,7 +1,6 @@
 import pytest
 from unittest.mock import AsyncMock, patch
 from bs4 import BeautifulSoup
-
 from scraper.data_scraper import DataScraper
 from data.data_manager import Laptop
 

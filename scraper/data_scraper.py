@@ -72,9 +72,10 @@ class DataScraper:
 
         for listing in listings:
 
-            logger.info(f"Working on listing: {listing[:100]}...")
+            logger.info(f"Working on listing: {str(listing)[:100]}...")
 
             link = 'https://www.olx.pl' + listing.select_one(scraper_config.olx_link_selector).get('href')
+            description = await DataScraper.get_description(session, link)
 
             laptop_data = {
                 'marketplace_id': DataScraper.get_id_from_link(link),
@@ -83,24 +84,45 @@ class DataScraper:
                 'status': listing.select_one(scraper_config.olx_status_selector).text,
                 'location': listing.select_one(scraper_config.olx_location_selector).text,
                 'link': link,
-                'description': await DataScraper.get_description(session, link),
                 'appearance_time': None,
                 'disappearance_time': None,
+                'description': description,
+                'model': DataScraper.get_laptop_components_from_description("model", description),
+                'cpu': DataScraper.get_laptop_components_from_description("cpu", description),
+                'ram': DataScraper.get_laptop_components_from_description("ram", description),
+                'storage': DataScraper.get_laptop_components_from_description("storage", description),
+                'gpu': DataScraper.get_laptop_components_from_description("gpu", description),
             }
             validated_laptop = create_laptop(laptop_data)
 
             devices.append(validated_laptop)
 
             logger.info("WORK ON LISTING DONE. RESULTS:\n\n"
-                  f"marketplace_id: {laptop_data['marketplace_id']}, \n" 
-                  f"Laptop {laptop_data['title']} data: \n" 
-                  f"Price: {laptop_data['price']}, \n"
-                  f"Status: {laptop_data['status']}, \n"
-                  f"location: {laptop_data['location']}, \n"
-                  f"link: {laptop_data['link']}, \n"
-                  f"description: {laptop_data['description'][:300]}...\n\n\n")
+                f"marketplace_id: {laptop_data['marketplace_id']}, \n" 
+                f"laptop {laptop_data['title']} data: \n" 
+                f"price: {laptop_data['price']}, \n"
+                f"status: {laptop_data['status']}, \n"
+                f"model: {laptop_data['model']}\n"
+                f"cpu: {laptop_data['cpu']}\n"
+                f"ram: {laptop_data['ram']}\n"
+                f"storage: {laptop_data['storage']}\n"
+                f"gpu: {laptop_data['gpu']}\n"
+                f"location: {laptop_data['location']}, \n"
+                f"link: {laptop_data['link']}, \n"
+                f"description: {laptop_data['description'][:300]}...\n\n\n")
 
         return devices
+    
+    @staticmethod
+    def get_laptop_components_from_description(component_type, description):
+        regex_map = scraper_config.regex_selectors
+        pattern = regex_map.get(component_type)
+        if pattern:
+            match = re.search(pattern, description)
+            if match:
+                return match.group(1)
+        return ""
+                
 
     async def main():
         async with aiohttp.ClientSession() as session:
