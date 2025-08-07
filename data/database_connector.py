@@ -105,8 +105,8 @@ def add_data(laptops: List[Laptop]):
 
 def get_data() -> List[Laptop]:
     logger.info("Retrieving laptops from database...")
-    laptops = session.query(LaptopListing).all()
     laptops = []
+    laptops = session.query(LaptopListing).all()
     for laptop in laptops:
         laptop = Laptop(
             marketplace_id=laptop.marketplace_id,
