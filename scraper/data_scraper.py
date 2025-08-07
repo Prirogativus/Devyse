@@ -19,15 +19,25 @@ class DataScraper:
         "User-Agent": "Mozilla/5.0"
     }
 
+    async def main():
+        await DataScraper.fetch_all_laptops()
+    
     @staticmethod
-    async def get_html_page(session, url: str):
-        logger.info(f"Getting HTML page from: {url}...")
-        async with session.get(url, headers=DataScraper.headers) as response:
-            text = await response.text()
-            soup = BeautifulSoup(text, 'lxml')
-        logger.info("HTML page retrieved.")
-        return soup
-
+    async def fetch_all_laptops() -> list:
+        async with aiohttp.ClientSession() as session:
+            amount_of_pages = await DataScraper.get_amount_of_pages(session)
+            urls = await DataScraper.generate_page_urls(amount_of_pages)
+            tasks = DataScraper.create_scrape_tasks(session, urls)
+            logger.info(f"Scraping {amount_of_pages} pages asynchronously...")
+            results = await asyncio.gather(*tasks)
+            return DataScraper.unite_scraping_results(results)
+        
+    @staticmethod
+    async def get_amount_of_pages(session):
+        page_numbers = await DataScraper.get_pagination_numbers(session, DataScraper.html_page)
+        amount_of_pages = max(page_numbers)
+        return amount_of_pages
+    
     @staticmethod
     async def get_pagination_numbers(session, url: str):
         soup = await DataScraper.get_html_page(session, url)
@@ -45,33 +55,50 @@ class DataScraper:
 
         logger.info(f"Pagination numbers found: {page_numbers}")
         return page_numbers
+    
+    @staticmethod
+    async def get_html_page(session, url: str):
+        logger.info(f"Getting HTML page from: {url}...")
+        async with session.get(url, headers=DataScraper.headers) as response:
+            text = await response.text()
+            soup = BeautifulSoup(text, 'lxml')
+        logger.info("HTML page retrieved.")
+        return soup
 
     @staticmethod
-    def get_id_from_link(url: str):
-        logger.info(f"Getting ID from link {url}...")
-        match = re.search(r"-ID([a-zA-Z0-9]+)\.html$", url)
-        if match:
-            logger.info(f"Successful ID match has been found in url: {match}")
-            return match.group(1)
+    def generate_page_urls(amount_of_pages: int) -> list[str]:
+        base_url = DataScraper.html_page
+        return [
+            base_url.replace("page=1", f"page={page}")
+            for page in range(1, amount_of_pages + 1)
+        ]
 
     @staticmethod
-    async def get_description(session, url: str):
-        soup = await DataScraper.get_html_page(session, url)
-        description_element = soup.select_one(scraper_config.olx_description_selector)
-        description = description_element.get_text(separator="\n") if description_element else ""
-        logger.info(f"Description has been retrieved successfully: {description[:100]} from {url}.")
-        return description
+    def create_scrape_tasks(session, urls: list[str]) -> list:
+        tasks = []
+        for i, url in enumerate(urls, start=1):
+            logger.info(f"Appending process_page task nr {i} asynchronously...")
+            tasks.append(DataScraper.process_page(session, url))
+        return tasks    
+    
+    @staticmethod
+    async def process_page(session, url: str):
+        listings = await DataScraper.get_listings(session, url)
+        laptops_data = await DataScraper.get_data_from_listings(session, listings)
+        laptop_models = DataScraper.turn_data_into_laptop_model(laptops_data)
+        return laptop_models
 
     @staticmethod
     async def get_listings(session, url: str):
         soup = await DataScraper.get_html_page(session, url)
-        devices = []
-
         logger.info(f"Starting to scrape listings from: {url}")
         listings = soup.select(scraper_config.olx_listing_selector)
+        return listings
 
+    @staticmethod
+    async def get_data_from_listings(session, listings):
+        laptop_data_list = []
         for listing in listings:
-
             logger.info(f"Working on listing: {str(listing)[:100]}...")
 
             link = 'https://www.olx.pl' + listing.select_one(scraper_config.olx_link_selector).get('href')
@@ -93,26 +120,25 @@ class DataScraper:
                 'storage': DataScraper.get_laptop_components_from_description("storage", description),
                 'gpu': DataScraper.get_laptop_components_from_description("gpu", description),
             }
-            validated_laptop = create_laptop(laptop_data)
-
-            devices.append(validated_laptop)
-
-            logger.info("WORK ON LISTING DONE. RESULTS:\n\n"
-                f"marketplace_id: {laptop_data['marketplace_id']}, \n" 
-                f"laptop {laptop_data['title']} data: \n" 
-                f"price: {laptop_data['price']}, \n"
-                f"status: {laptop_data['status']}, \n"
-                f"model: {laptop_data['model']}\n"
-                f"cpu: {laptop_data['cpu']}\n"
-                f"ram: {laptop_data['ram']}\n"
-                f"storage: {laptop_data['storage']}\n"
-                f"gpu: {laptop_data['gpu']}\n"
-                f"location: {laptop_data['location']}, \n"
-                f"link: {laptop_data['link']}, \n"
-                f"description: {laptop_data['description'][:300]}...\n\n\n")
-
-        return devices
+            laptop_data_list.append(laptop_data)
+        return laptop_data_list
     
+    @staticmethod
+    async def get_description(session, url: str):
+        soup = await DataScraper.get_html_page(session, url)
+        description_element = soup.select_one(scraper_config.olx_description_selector)
+        description = description_element.get_text(separator="\n") if description_element else ""
+        logger.info(f"Description has been retrieved successfully: {description[:100]} from {url}.")
+        return description
+    
+    @staticmethod
+    def get_id_from_link(url: str):
+        logger.info(f"Getting ID from link {url}...")
+        match = re.search(r"-ID([a-zA-Z0-9]+)\.html$", url)
+        if match:
+            logger.info(f"Successful ID match has been found in url: {match}")
+            return match.group(1)
+
     @staticmethod
     def get_laptop_components_from_description(component_type, description):
         regex_map = scraper_config.regex_selectors
@@ -122,28 +148,34 @@ class DataScraper:
             if match:
                 return match.group(1)
         return ""
-                
 
-    async def main():
-        async with aiohttp.ClientSession() as session:
-            page_numbers = await DataScraper.get_pagination_numbers(session, DataScraper.html_page)
-            max_page = max(page_numbers)
+    @staticmethod
+    def turn_data_into_laptop_model(laptops_data):
+        devices = []
+        for laptop_data in laptops_data:
+            validated_laptop = create_laptop(laptop_data)
+            devices.append(validated_laptop)
 
-            tasks = []
-
-            for page in range(1, max_page + 1):
-                url = DataScraper.html_page.replace("page=1", f"page={page}")
-                tasks.append(DataScraper.get_listings(session, url))
-                logger.info(f"Appending get_listings task nr {page} asynchronously...")
-
-            logger.info(f"Scraping {max_page} pages asynchronously...")
-            results = await asyncio.gather(*tasks)
-
-            laptops = [item for sublist in results for item in sublist]
-
-            logger.info(f"Scraped {len(laptops)} laptops.")
-            return laptops
-
+            logger.info("WORK ON LISTING DONE. RESULTS:\n\n"
+            f"marketplace_id: {laptop_data['marketplace_id']}, \n" 
+            f"laptop {laptop_data['title']} data: \n" 
+            f"price: {laptop_data['price']}, \n"
+            f"status: {laptop_data['status']}, \n"
+            f"model: {laptop_data['model']}\n"
+            f"cpu: {laptop_data['cpu']}\n"
+            f"ram: {laptop_data['ram']}\n"
+            f"storage: {laptop_data['storage']}\n"
+            f"gpu: {laptop_data['gpu']}\n"
+            f"location: {laptop_data['location']}, \n"
+            f"link: {laptop_data['link']}, \n"
+            f"description: {laptop_data['description'][:300]}...\n\n\n")
+        return devices
+         
+    @staticmethod 
+    def unite_scraping_results(results):
+        laptops = [item for sublist in results for item in sublist]
+        logger.info(f"Scraped {len(laptops)} laptops.")
+        return laptops
 
 if __name__ == "__main__":
     asyncio.run(DataScraper.main())
