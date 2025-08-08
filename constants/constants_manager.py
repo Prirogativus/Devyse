@@ -10,3 +10,5 @@ DB_PORT = os.getenv("DB_PORT")
 DB_USERNAME = os.getenv("DB_USERNAME")
 DB_PASSWORD = os.getenv("DB_PASSWORD")
 
+#Telegram
+TELEGRAM_BOT_TOKEN = os.getenv("Telegram_BOT_TOKEN")
