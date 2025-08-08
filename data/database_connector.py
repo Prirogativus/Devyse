@@ -26,7 +26,7 @@ class LaptopListing(Base):
     gpu = Column(String(255))
     ram = Column(Integer)
     storage = Column(Integer)
-    status = Column(SAEnum(status_enum, name ="status_enum", native_enum = False), create_type=False, nullable=False)
+    status = Column(SAEnum(status_enum, name ="status_enum", native_enum = False),create_type=False, nullable=False)
     location = Column(String(255), nullable=False)
     appearance_time = Column(DateTime(timezone=True), nullable=True)
     disappearance_time = Column(DateTime(timezone=True), nullable=True)
@@ -46,6 +46,7 @@ def add_data(laptops: List[Laptop]):
 
     logger.info(f"Adding {len(laptops)} laptops to the database...")
 
+
     insert_query = text("""
         INSERT INTO laptops (
             marketplace_id, title, price, model, cpu, gpu, ram,
@@ -62,16 +63,16 @@ def add_data(laptops: List[Laptop]):
 
     parameters = []
     for laptop in laptops:
-        status_raw = laptop.status
-        if isinstance(status_raw, Enum):
-            status_value = status_raw.value
-        elif isinstance(status_raw, str):
-            status_value = status_raw.upper()
-            if status_value not in status_enum.__members__:
-                logger.warning(f"Skipping laptop with unknown status: {status_value}")
+        status = laptop.status
+        if isinstance(status, Enum):
+            status_value = status.value
+        elif isinstance(status, str):
+            if status not in status_enum.__members__.values():
+                logger.warning(f"Skipping laptop with unknown status: {status}")
                 continue
+            status_value = status
         else:
-            logger.warning(f"Skipping laptop with invalid status type: {status_raw}")
+            logger.warning(f"Skipping laptop with invalid status type: {status}")
             continue
 
         logger.debug(f"Laptop status value: {status_value}")
@@ -104,29 +105,28 @@ def add_data(laptops: List[Laptop]):
 
 def get_data() -> List[Laptop]:
     logger.info("Retrieving laptops from database...")
-    db_laptops = session.query(LaptopListing).all()
-    result = []
-    for db_laptop in db_laptops:
+    laptops = []
+    laptops = session.query(LaptopListing).all()
+    for laptop in laptops:
         laptop = Laptop(
-            marketplace_id=db_laptop.marketplace_id,
-            title=db_laptop.title,
-            price=db_laptop.price,
-            model=db_laptop.model,
-            cpu=db_laptop.cpu,
-            gpu=db_laptop.gpu,
-            ram=db_laptop.ram,
-            storage=db_laptop.storage,
-            status=db_laptop.status,
-            location=db_laptop.location,
-            appearance_time=db_laptop.appearance_time,
-            disappearance_time=db_laptop.disappearance_time,
-            link=db_laptop.link,
-            description=db_laptop.description
+            marketplace_id=laptop.marketplace_id,
+            title=laptop.title,
+            price=laptop.price,
+            model=laptop.model,
+            cpu=laptop.cpu,
+            gpu=laptop.gpu,
+            ram=laptop.ram,
+            storage=laptop.storage,
+            status=laptop.status,
+            location=laptop.location,
+            appearance_time=laptop.appearance_time,
+            disappearance_time=laptop.disappearance_time,
+            link=laptop.link,
+            description=laptop.description
         )
-        result.append(laptop)
-    logger.info(f"Retrieved {len(result)} laptops.")
-    return result
-
+        laptops.append(laptop)
+    logger.info(f"Retrieved {len(laptops)} laptops.")
+    return laptops
 
 
 def delete_data(marketplace_id: str):

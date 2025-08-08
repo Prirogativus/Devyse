@@ -90,26 +90,25 @@ class Laptop(SQLModel, table=True):
     @field_validator("status", mode="before")
     @classmethod
     def parse_status(cls, value):
-        # Приводим к строке ВСЕГДА
         if isinstance(value, status_enum):
-            value = value.value
-        elif not isinstance(value, str):
-            raise ValueError(f"Status must be str or status_enum, got: {type(value)}")
+            return value
 
-        normalized = value.strip().lower()
+        if isinstance(value, str):
+            normalized = value.strip().lower()
 
-        mapping = {
-            "nowe": status_enum.NOWE,
-            "używane": status_enum.UZYWANE,
-            "uzywane": status_enum.UZYWANE,
-            "uszkodzone": status_enum.USZKODZONE,
-        }
+            mapping = {
+                "nowe": status_enum.NOWE,
+                "używane": status_enum.UZYWANE,
+                "uzywane": status_enum.UZYWANE,  # fallback
+                "uszkodzone": status_enum.USZKODZONE,
+            }
 
-        if normalized in mapping:
-            return mapping[normalized]
+            if normalized in mapping:
+                return mapping[normalized]
 
+        logger.error(f"Invalid status value: {value}")
         raise ValueError(f"Invalid status: {value}")
-    
+
     @field_validator("description", mode="before")
     @classmethod
     def normalize_description(cls, value):
