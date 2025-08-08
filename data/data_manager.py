@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import List, Dict
 from data.models import Laptop
 import logging
-from data.database_connector import get_data, add_data, modify_data
+from data.database_connector import get_data, add_data, modify_data, session
 
 logger = logging.getLogger(__name__)
 
@@ -54,3 +54,4 @@ def sync_with_database(scraped_laptops: List[Laptop]):
     if changes["removed"]:
         update_timestamps_for_removed(changes["removed"])
         logger.info(f"Processed disappearance for {len(changes['removed'])} laptops.")
+    session.expire_all()

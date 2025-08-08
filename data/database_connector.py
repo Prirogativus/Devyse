@@ -1,4 +1,5 @@
 from typing import Optional, List
+from datetime import datetime
 from sqlalchemy import Column, Integer, String, text,  DateTime, Float, Text, Enum as SAEnum
 import sqlalchemy.ext.declarative
 import sqlalchemy.orm
@@ -142,10 +143,10 @@ def delete_data(marketplace_id: str):
     else:
         logger.info(f"No listing found with marketplace_id={marketplace_id}.")
 
-def modify_data(selector: str, modification_value: str): 
-    logger.info(f"Modifing data in the database.")
+def modify_data(marketplace_id: str, modification_value: datetime):
+    logger.info(f"Modifying data in the database for marketplace_id={marketplace_id}")
 
-    laptop = session.query(LaptopListing).filter_by(title = selector).first()
+    laptop = session.query(LaptopListing).filter_by(marketplace_id=marketplace_id).first()
 
     if laptop:
         if laptop.disappearance_time is None:
@@ -154,6 +155,6 @@ def modify_data(selector: str, modification_value: str):
             logger.info(f"Added disappearance time: {modification_value}, to the {laptop.title}")
         else:
             logger.info(f"Disappearance time is already existing.")
-    else: 
-        logger.info("Can't find needed listing")
+    else:
+        logger.info(f"Can't find listing with marketplace_id={marketplace_id}")
 
