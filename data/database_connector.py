@@ -26,7 +26,7 @@ class LaptopListing(Base):
     gpu = Column(String(255))
     ram = Column(Integer)
     storage = Column(Integer)
-    status = Column(SAEnum(status_enum, name ="status_enum", native_enum = False),create_type=False, nullable=False)
+    status = Column(String(255))
     location = Column(String(255), nullable=False)
     appearance_time = Column(DateTime(timezone=True), nullable=True)
     disappearance_time = Column(DateTime(timezone=True), nullable=True)
@@ -105,26 +105,29 @@ def add_data(laptops: List[Laptop]):
 
 def get_data() -> List[Laptop]:
     logger.info("Retrieving laptops from database...")
-    laptops = []
-    laptops = session.query(LaptopListing).all()
-    for laptop in laptops:
-        laptop = Laptop(
-            marketplace_id=laptop.marketplace_id,
-            title=laptop.title,
-            price=laptop.price,
-            model=laptop.model,
-            cpu=laptop.cpu,
-            gpu=laptop.gpu,
-            ram=laptop.ram,
-            storage=laptop.storage,
-            status=laptop.status,
-            location=laptop.location,
-            appearance_time=laptop.appearance_time,
-            disappearance_time=laptop.disappearance_time,
-            link=laptop.link,
-            description=laptop.description
+    db_laptops = session.query(LaptopListing).all()
+
+    laptops: List[Laptop] = []
+    for laptop in db_laptops:
+        laptops.append(
+            Laptop(
+                marketplace_id=laptop.marketplace_id,
+                title=laptop.title,
+                price=laptop.price,
+                model=laptop.model,
+                cpu=laptop.cpu,
+                gpu=laptop.gpu,
+                ram=laptop.ram,
+                storage=laptop.storage,
+                status=laptop.status,
+                location=laptop.location,
+                appearance_time=laptop.appearance_time,
+                disappearance_time=laptop.disappearance_time,
+                link=laptop.link,
+                description=laptop.description
+            )
         )
-        laptops.append(laptop)
+
     logger.info(f"Retrieved {len(laptops)} laptops.")
     return laptops
 

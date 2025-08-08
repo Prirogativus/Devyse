@@ -1,52 +1,56 @@
 from datetime import datetime
-from typing import List
+from typing import List, Dict
 from data.models import Laptop
 import logging
 from data.database_connector import get_data, add_data, modify_data
 
 logger = logging.getLogger(__name__)
 
-def sync_with_database(scraped_laptops: List[Laptop]):
-    db_laptops = fetch_laptops_from_db()
-    new, removed = detect_changes(scraped_laptops, db_laptops)
+laptops = []
+def fetch_database_laptops() -> List[Laptop]:
+    laptops = get_data()
+    return laptops if laptops else []
 
-    new = [timestamp_appearance(laptop) for laptop in new]
-    removed = [timestamp_disappearance(laptop) for laptop in removed]
+def identify_changes(scraped_laptops: List[Laptop], db_laptops: List[Laptop]) -> Dict[str, List[Laptop]]:
+    scraped_map = {l.marketplace_id: l for l in scraped_laptops}
+    db_map = {l.marketplace_id: l for l in db_laptops}
 
-    save_new_laptops(new)
-    update_removed_laptops(removed)
+    scraped_ids = set(scraped_map.keys())
+    db_ids = set(db_map.keys())
 
-def  fetch_laptops_from_db() -> List[Laptop]:
-    db_laptops: List[Laptop] = get_data() or []
-    return db_laptops
+    new_ids = scraped_ids - db_ids
+    removed_ids = db_ids - scraped_ids
 
-def detect_changes(scraped_laptops: List[Laptop], db_laptops: List[Laptop]):
-    new = scraped_laptops - db_laptops
-    removed = db_laptops - scraped_laptops
-    return new, removed
+    new_laptops = [scraped_map[_id] for _id in new_ids]
+    removed_laptops = [db_map[_id] for _id in removed_ids]
 
-def timestamp_appearance(laptop: Laptop):
-        now = datetime.now()
+    return {
+        "new": new_laptops,
+        "removed": removed_laptops
+    }
+
+def update_timestamps_for_new(laptops: List[Laptop]) -> None:
+    now = datetime.now()
+    for laptop in laptops:
         laptop.appearance_time = now
-        logger.info(f"Timestamping appearance: {laptop.title}, ID: {laptop.marketplace_id}")
+        logger.info(f"Timestamp appearance: {laptop.title}, ID: {laptop.marketplace_id}")
 
-def timestamp_disappearance(laptop: Laptop):
-        now = datetime.now()
+def update_timestamps_for_removed(laptops: List[Laptop]) -> None:
+    now = datetime.now()
+    for laptop in laptops:
         laptop.disappearance_time = now
-        logger.info(f"Timestamping disappearance: {laptop.title}, ID: {laptop.marketplace_id}")
-
-def save_new_laptops(new_laptops: List[Laptop]):
-    for laptop in new_laptops:
-        timestamp_appearance(laptop)
-        logger.info(f"Adding new laptop to the database: {laptop.title}, ID: {laptop.marketplace_id}")
-    add_data(new_laptops)
-
-def update_removed_laptops(removed_laptops: List[Laptop]):
-    for laptop in removed_laptops:
-        timestamp_disappearance(laptop)
         modify_data(laptop.title, laptop.disappearance_time)
-        logger.info(f"Add disappearance time for: {laptop.title}, ID: {laptop.marketplace_id}")
+        logger.info(f"Timestamp disappearance: {laptop.title}, ID: {laptop.marketplace_id}")
 
+def sync_with_database(scraped_laptops: List[Laptop]):
+    db_laptops = fetch_database_laptops()
+    changes = identify_changes(scraped_laptops, db_laptops)
 
+    if changes["new"]:
+        update_timestamps_for_new(changes["new"])
+        logger.info(f"Adding {len(changes['new'])} new laptops to the database.")
+        add_data(changes["new"])
 
-
+    if changes["removed"]:
+        update_timestamps_for_removed(changes["removed"])
+        logger.info(f"Processed disappearance for {len(changes['removed'])} laptops.")

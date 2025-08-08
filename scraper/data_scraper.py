@@ -20,13 +20,14 @@ class DataScraper:
     }
 
     async def main():
-        await DataScraper.fetch_all_laptops()
+        laptops = await DataScraper.fetch_all_laptops()
+        return laptops
     
     @staticmethod
     async def fetch_all_laptops() -> list:
         async with aiohttp.ClientSession() as session:
             amount_of_pages = await DataScraper.get_amount_of_pages(session)
-            urls = await DataScraper.generate_page_urls(amount_of_pages)
+            urls =  DataScraper.generate_page_urls(amount_of_pages)
             tasks = DataScraper.create_scrape_tasks(session, urls)
             logger.info(f"Scraping {amount_of_pages} pages asynchronously...")
             results = await asyncio.gather(*tasks)
