@@ -1,0 +1,5 @@
+DB_SERVER = "localhost or server ip address"
+DB_NAME = "your db name"
+DB_PORT = 5432 or custom
+DB_USERNAME = "your database username"
+DB_PASSWORD = "your database password"

@@ -1,9 +1,8 @@
 from sqlmodel import SQLModel, Field
-from typing import Optional
 from datetime import datetime
-from pydantic import HttpUrl, field_validator
+from pydantic import field_validator, BaseModel
 import logging
-from typing import Optional, Literal
+from typing import Optional
 from enum import Enum
 import re
 
@@ -127,6 +126,13 @@ class Laptop(SQLModel, table=True):
             raise ValueError(f"Invalid datetime format: {value}")
         
 #Factory Function
-
 def create_laptop(data: dict) -> Laptop:
     return Laptop.model_validate(data)
+
+def turn_into_laptops(dicts: list[dict]) -> list[Laptop]:
+    """Convert a list of dictionaries into a list of Laptop objects."""
+    return [create_laptop(d) for d in dicts]
+
+class ImageRequest(BaseModel):
+    channel_id: int
+    paths: list[str]

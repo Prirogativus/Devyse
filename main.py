@@ -1,8 +1,6 @@
 import scraper.data_scraper as scr
 import data.data_manager as dm
-import data.database_connector as db
-import configs.scraper_config as cfg
-import data.models as mdl
+from data.models import turn_into_laptops
 import asyncio
 import logging
 from configs.logger_config import setup_logger
@@ -13,8 +11,11 @@ logger = logging.getLogger(__name__)
 
 def main():
     logger.info("Starting Workflow.")
-    dm.laptops = asyncio.run(scr.DataScraper.main())
-    dm.sync_with_database(dm.laptops)
+    scraper = scr.DataScraper()
+    laptops = turn_into_laptops(asyncio.run(scraper.scrape()))
+    dm.sync_with_database(laptops)
     logger.info("Workflow completed.")
 if __name__ == "__main__":
     main()
+
+
