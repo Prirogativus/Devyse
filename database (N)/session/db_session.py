@@ -2,7 +2,7 @@ import logging
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from data.db_models import Base
-from constants.constants_manager import DB_USERNAME, DB_PASSWORD, DB_SERVER, DB_PORT, DB_NAME
+from config.constants_manager import DB_USERNAME, DB_PASSWORD, DB_SERVER, DB_PORT, DB_NAME
 
 logger = logging.getLogger(__name__)
 

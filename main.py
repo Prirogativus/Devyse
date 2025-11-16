@@ -1,4 +1,4 @@
-import scraper.data_scraper as scr
+import scraper.network_main as scr
 import data.data_manager as dm
 from data.models import turn_into_laptops
 import asyncio
