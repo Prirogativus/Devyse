@@ -1,5 +1,5 @@
-from scraper.interfaces import AbstractDescriptionParser
-import configs.scraper_config as scc
+from app.parser.abstractions.description_parser import AbstractDescriptionParser
+import config.scraper_config as scc
 import logging
 from bs4 import BeautifulSoup
 from typing import Literal

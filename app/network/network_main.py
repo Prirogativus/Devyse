@@ -1,12 +1,8 @@
 import asyncio
 import logging
-import scraper.interfaces as infs
-from configs import scraper_config as scc
-from scraper.implementations.http_client import HttpClient
-from scraper.implementations.pagination_handler import PaginationHandler
-from scraper.implementations.page_url_generator import PageUrlGenerator
-from scraper.implementations.parser import OlxParser
-from scraper.implementations.description_parser import DescriptionParser
+import app.network.abstractions.http_client as abs
+from config import scraper_config as scc
+from app.network.implementations.http_client import HttpClient
 
 
 class DataScraper:
@@ -14,11 +10,11 @@ class DataScraper:
 
     def __init__(
         self,
-        http_client: infs.AbstractHttpClient = HttpClient(),
-        pagination_handler: infs.AbstractPaginationHandler = PaginationHandler(),
-        page_url_generator: infs.AbstractPageUrlGenerator = PageUrlGenerator(),
-        html_parser: infs.AbstractHTMLParser = OlxParser(),
-        description_parser: infs.AbstractDescriptionParser = DescriptionParser(),
+        http_client: abs.AbstractHtmlExtractor = HttpClient(),
+        #pagination_handler: abs.AbstractPaginationHandler = PaginationHandler(),
+        #page_url_generator: abs.AbstractPageUrlGenerator = PageUrlGenerator(),
+        #html_parser: abs.AbstractHTMLParser = OlxParser(),
+        #description_parser: abs.AbstractDescriptionParser = DescriptionParser(),
     ):
         """
         Initialize the DataScraper manager.
@@ -31,13 +27,25 @@ class DataScraper:
             description_parser_cls: Class implementing AbstractDescriptionParser for detail extraction.
         """
         self.http_client = http_client
-        self.pagination_handler = pagination_handler
-        self.page_url_generator = page_url_generator
-        self.html_parser = html_parser
-        self.description_parser = description_parser
+        #self.pagination_handler = pagination_handler
+        #self.page_url_generator = page_url_generator
+        #self.html_parser = html_parser
+        #self.description_parser = description_parser
         self.logger = logging.getLogger(__name__)
 
-    async def scrape(self, base_url: str = scc.olx_html_page):
+    async def fetch_main_page(self, url: str) -> str:
+        """Fetch the main page HTML content from the given URL."""
+        self.logger.info(f"Getting main page from: {url}...")
+        raw_html = await self.http_client.fetch_html(url)
+        return raw_html
+    
+    async def fetch_pages(self, urls: list[str]) -> list[str]:
+        pages = []
+        for url in urls:
+            pages[url] = await self.http_client.fetch_html(url)
+        
+
+    '''async def scrape(self, base_url: str = scc.olx_html_page):
         """
         Orchestrates the full scraping workflow: pagination, page fetch, listing parse, and detail enrichment.
 
@@ -63,9 +71,9 @@ class DataScraper:
 
             description_data_tasks = [self.enrich_laptop(session, laptop) for laptop in listings]
             laptops = await asyncio.gather(*description_data_tasks)
-            return laptops
+            return laptops'''
 
-    async def enrich_laptop(self, session, laptop_data: dict):
+    '''async def enrich_laptop(self, session, laptop_data: dict):
         """
         Fetches and enriches a single laptop dictionary using its discription page.
         Args:
@@ -76,4 +84,4 @@ class DataScraper:
         """
         description_page_soup = await self.http_client.fetch(session, laptop_data['link'])
         description_parser = self.description_parser
-        return description_parser.enrich_laptop_data_dict(laptop_data=laptop_data, description_page=description_page_soup)
+        return description_parser.enrich_laptop_data_dict(laptop_data=laptop_data, description_page=description_page_soup)'''
