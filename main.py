@@ -1,20 +1,21 @@
-import scraper.data_scraper as scr
-import data.data_manager as dm
-import data.database_connector as db
-import configs.scraper_config as cfg
-import data.models as mdl
+from app.network.network_main import DataScraper as scr
+import app.data.data_manager as dm
+from app.data.models import turn_into_laptops
+import config.scraper_config as scc
 import asyncio
 import logging
-from configs.logger_config import setup_logger
+from config.logger_config import setup_logger
 
-setup_logger()
-
-logger = logging.getLogger(__name__)
 
 def main():
+    setup_logger()
+    logger = logging.getLogger(__name__)
     logger.info("Starting Workflow.")
-    dm.laptops = asyncio.run(scr.DataScraper.main())
-    dm.sync_with_database(dm.laptops)
+    main_page = scr.fetch_main_page(scc.olx_html_page)
+    laptops = turn_into_laptops(asyncio.run(scraper.scrape()))
+    dm.sync_with_database(laptops)
     logger.info("Workflow completed.")
 if __name__ == "__main__":
     main()
+
+
